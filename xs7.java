@@ -1,7 +1,7 @@
 /* XML Stations v7
 Core Process 
 Conceived 2016-09-04
-Updated 2017-09-15 */
+Updated 2017-09-17 */
 
 package jASUtils;
 
@@ -120,11 +120,17 @@ public class xs7 {
 		}
 		
 		StumpJunk.runProcess("(wgrib2 "+xsTmp+"/grib2/HRRR -pdt | egrep -v \"^600:\" | wgrib2 -i "+xsTmp+"/grib2/HRRR -grib "+xsTmp+"/grib2/HRRR)");
-		String rapCtlData = StumpJunk.runProcessOutVar("\""+wgrib2Path+"/g2ctl\" "+xsTmp+"/grib2/RAP");
-		String hrrrCtlData = StumpJunk.runProcessOutVar("\""+wgrib2Path+"/g2ctl\" "+xsTmp+"/grib2/HRRR");
 
-		Thread c3a = new Thread(new Runnable() { public void run() { try { StumpJunk.varToFile(rapCtlData, rapCtlFile, false); } catch (FileNotFoundException fnf) { fnf.printStackTrace(); } }});
-		Thread c3b = new Thread(new Runnable() { public void run() { try { StumpJunk.varToFile(hrrrCtlData, hrrrCtlFile, false); } catch (FileNotFoundException fnf) { fnf.printStackTrace(); } }});
+		Thread c3a = new Thread(new Runnable() { public void run() {
+			String rapCtlData = null;
+			try { rapCtlData = StumpJunk.runProcessOutVar("\""+wgrib2Path+"/g2ctl\" "+xsTmp+"/grib2/RAP"); } catch (IOException ix) { ix.printStackTrace(); }
+			try { StumpJunk.varToFile(rapCtlData, rapCtlFile, false); } catch (FileNotFoundException fnf) { fnf.printStackTrace(); }
+		}});
+		Thread c3b = new Thread(new Runnable() { public void run() {
+			String hrrrCtlData = null;
+			try { hrrrCtlData = StumpJunk.runProcessOutVar("\""+wgrib2Path+"/g2ctl\" "+xsTmp+"/grib2/HRRR"); } catch (IOException ix) { ix.printStackTrace(); }
+			try { StumpJunk.varToFile(hrrrCtlData, hrrrCtlFile, false); } catch (FileNotFoundException fnf) { fnf.printStackTrace(); }
+		}});
 		Thread cList3[] = { c3a, c3b };
 		for (Thread thread : cList3) { thread.start(); }
 		for (int i = 0; i < cList3.length; i++) { try { cList3[i].join(); } catch (InterruptedException nx) { nx.printStackTrace(); } }
@@ -185,7 +191,7 @@ public class xs7 {
 		for (int i = 0; i < xsPool.length; i++) { try { xsPool[i].join(); } catch (InterruptedException nx) { nx.printStackTrace(); } }
 
 		String jsonBigString = null;
-		jsonBigString = StumpJunk.runProcessOutVar("cat "+xsTmp+"/*.json");
+		try { jsonBigString = StumpJunk.runProcessOutVar("cat "+xsTmp+"/*.json"); } catch (IOException ix) { ix.printStackTrace(); }
 		jsonBigString = ("{"+jsonBigString+"}").replace("\n","").replace(",}", "}");
 
 		try { StumpJunk.varToFile(jsonBigString, jsonDebugDumpFile, false); } catch (FileNotFoundException fnf) { fnf.printStackTrace(); }
@@ -193,7 +199,7 @@ public class xs7 {
 		String jsonBigSQLQuery = "INSERT INTO WxObs.StationDataIndexed (jsonData) VALUES ('"+jsonBigString+"');";
 
 		String badStationsString = null;
-		badStationsString = StumpJunk.runProcessOutVar("cat "+xsTmp+"/badStations_*");
+		try { badStationsString = StumpJunk.runProcessOutVar("cat "+xsTmp+"/badStations_*"); } catch (IOException ix) { ix.printStackTrace(); }
 		badStationsString = ("["+badStationsString+"]").replace("\n","").replace(", ]","]");
 		String badStationQuery = "INSERT INTO WxObs.BadStations (BadStations) VALUES ('"+badStationsString+"');";		
 		
