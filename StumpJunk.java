@@ -135,12 +135,20 @@ public class StumpJunk {
 	}
 
 	public static void runProcessOutFile(String pString, File outFile, boolean appendFlag) throws FileNotFoundException {
-		String tmpVar = runProcessOutVar(pString);
+		String tmpVar = null;
+		try { tmpVar = runProcessOutVar(pString); } catch (IOException ix) { ix.printStackTrace(); }
 		varToFile(tmpVar, outFile, appendFlag);
 	}
 
-	public static String runProcessOutVar(String pString) {
-		PrintStream console = System.out;
+	public static String runProcessOutVar(String pString) throws java.io.IOException {
+		String[] pArray = { "bash", "-c", pString };
+		Process proc = new ProcessBuilder(pArray).start();
+		InputStream is = proc.getInputStream();
+		Scanner co = new Scanner(is).useDelimiter("\\A");
+		String val = "";
+		if (co.hasNext()) { val = co.next(); } else { val = ""; }
+		return val;
+		/* PrintStream console = System.out;
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		PrintStream thisStream = new PrintStream(baos);
 		System.setOut(thisStream);
@@ -148,7 +156,7 @@ public class StumpJunk {
 		String thisOutputString = baos.toString();
 		System.out.flush();
 		System.setOut(console);
-		return thisOutputString;
+		return thisOutputString; */
 	}
 
 	public static void sedFileDeleteFirstLine(String fileName) {
