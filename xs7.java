@@ -1,7 +1,7 @@
 /* XML Stations v7
 Core Process 
 Conceived 2016-09-04
-Updated 2017-09-17 */
+Updated 2017-09-15 */
 
 package jASUtils;
 
@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Scanner;
 
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -32,7 +33,7 @@ public class xs7 {
 		final String xsTmp = "/dev/shm/xsTmpJ";
 		final String tFHour2D = "02";
 		final String tFHour4D = "0002";
-		final DateTime tDateTime = new DateTime().minusHours(2);
+		final DateTime tDateTime = new DateTime(DateTimeZone.UTC).minusHours(2);
 		final DateTimeFormatter getHourFormat = DateTimeFormat.forPattern("HH");
 		final DateTimeFormatter getDateFormat = DateTimeFormat.forPattern("yyyyMMdd");
 		final String getHour = getHourFormat.print(tDateTime);
