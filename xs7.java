@@ -17,6 +17,7 @@ import org.joda.time.format.DateTimeFormatter;
 
 import jASUtils.StumpJunk;
 import jASUtils.xsImageOp;
+import jASUtils.xsMETARAutoAdd;
 import jASUtils.xsWorkerFull;
 import jASUtils.xsWorkerBasic;
 import jASUtils.xsWorkerMETAR;
@@ -89,6 +90,9 @@ public class xs7 {
 		for (Thread thread : cList2) { thread.start(); }
 		for (int i = 0; i < cList2.length; i++) { try { cList2[i].join(); } catch (InterruptedException nx) { nx.printStackTrace(); } }
  
+		final String[] addMETARStationArgs = { xsTmp };
+		xsMETARAutoAdd.main(addMETARStationArgs);
+
 		try (
 			Connection conn1 = MyDBConnector.getMyConnection(); Statement stmt1 = conn1.createStatement();
 			ResultSet resultSetGVars = stmt1.executeQuery(gVarsSQL);
@@ -134,7 +138,7 @@ public class xs7 {
 		for (Thread thread : cList4) { thread.start(); }
 		for (int i = 0; i < cList4.length; i++) { try { cList4[i].join(); } catch (InterruptedException nx) { nx.printStackTrace(); } }
 
-		StumpJunk.runProcess("(echo \"run "+helpers.getPath()+"/xsGraphics.gs "+getDate+" "+getHour+" "+gradsOutObj.getPath()+"\" | \""+appPath+"/grads\" -blc \"open "+xsTmp+"/grib2/HRRR.ctl\" 2>&1 >> "+logFile.getPath()+")");
+		StumpJunk.runProcess("(echo \"run "+helpers.getPath()+"/xsGraphics.gs "+getDate+" "+getHour+" "+gradsOutObj.getPath()+"\" | \""+appPath+"/grads\" -blc \"open "+xsTmp+"/grib2/HRRR.ctl\" &>> "+logFile.getPath()+")");
 		for (String gVar : gVarsH) { StumpJunk.runProcess("convert \""+gradsOutObj.getPath()+"/"+gVar+"/"+getDate+"_"+getHour+"_"+gVar+".png\" -gravity Center -crop "+resHigh+"+0+0 "+gradsOutObj.getPath()+"/"+gVar+"/"+getDate+"_"+getHour+"_"+gVar+".png"); }
 		for (String gVar : gVarsL) { StumpJunk.runProcess("convert \""+gradsOutObj.getPath()+"/"+gVar+"/"+getDate+"_"+getHour+"_"+gVar+".png\" -gravity Center -crop "+resLow+"+0+0 "+gradsOutObj.getPath()+"/"+gVar+"/"+getDate+"_"+getHour+"_"+gVar+".png"); }
 		StumpJunk.runProcess("cp -Rv "+gradsOutObj.getPath()+"/* "+wwwOutObj.getPath());
@@ -158,6 +162,7 @@ public class xs7 {
 		final String[] xmWorker9Args = { xsTmp, "EUE" }; 
 		final String[] xmWorker10Args = { xsTmp, "EUW" }; 
 		final String[] xmWorker11Args = { xsTmp, "AFR" };
+		final String[] xmWorker12Args = { xsTmp, "AUTO" };
 
 		final String[] xwbWorkerArgs = { xsTmp, "None" };
 		final String[] xwhWorkerArgs = { xsTmp, "None" };
@@ -179,9 +184,10 @@ public class xs7 {
 		Thread xs13 = new Thread(new Runnable() { public void run() { xsWorkerMETAR.main(xmWorker9Args); }});
 		Thread xs14 = new Thread(new Runnable() { public void run() { xsWorkerMETAR.main(xmWorker10Args); }});
 		Thread xs15 = new Thread(new Runnable() { public void run() { xsWorkerMETAR.main(xmWorker11Args); }});
-		Thread xs16 = new Thread(new Runnable() { public void run() { xsWorkerBouy.main(xwbWorkerArgs); }});
-		Thread xs17 = new Thread(new Runnable() { public void run() { xsWorkerHydro.main(xwhWorkerArgs); }});
-		Thread xs18 = new Thread(new Runnable() { public void run() { xsWorkerWunder.main(xwuWorkerArgs); }});
+		Thread xs16 = new Thread(new Runnable() { public void run() { xsWorkerMETAR.main(xmWorker12Args); }});
+		Thread xs17 = new Thread(new Runnable() { public void run() { xsWorkerBouy.main(xwbWorkerArgs); }});
+		Thread xs18 = new Thread(new Runnable() { public void run() { xsWorkerHydro.main(xwhWorkerArgs); }});
+		Thread xs19 = new Thread(new Runnable() { public void run() { xsWorkerWunder.main(xwuWorkerArgs); }});
 		Thread xsPool[] = { xs01, xs02, xs03, xs04, xs05, xs06, xs07, xs08, xs09, xs10, xs11, xs12, xs13, xs14, xs15, xs16, xs17, xs18 }; 
 		for (Thread thread : xsPool) { thread.start(); }
 		for (int i = 0; i < xsPool.length; i++) { try { xsPool[i].join(); } catch (InterruptedException nx) { nx.printStackTrace(); } }
@@ -194,14 +200,8 @@ public class xs7 {
 
 		String jsonBigSQLQuery = "INSERT INTO WxObs.StationDataIndexed (jsonData) VALUES ('"+jsonBigString+"');";
 
-		String badStationsString = null;
-		try { badStationsString = StumpJunk.runProcessOutVar("cat "+xsTmp+"/badStations_*"); } catch (IOException ix) { ix.printStackTrace(); }
-		badStationsString = ("["+badStationsString+"]").replace("\n","").replace(", ]","]");
-		String badStationQuery = "INSERT INTO WxObs.BadStations (BadStations) VALUES ('"+badStationsString+"');";		
-		
 		try ( Connection conn4 = MyDBConnector.getMyConnection(); Statement stmt4 = conn4.createStatement();) {
 			stmt4.executeUpdate(jsonBigSQLQuery);
-			stmt4.executeUpdate(badStationQuery);
 		}
 		catch (SQLException se) { se.printStackTrace(); }
 		catch (Exception e) { e.printStackTrace(); }
