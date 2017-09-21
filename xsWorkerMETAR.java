@@ -51,6 +51,7 @@ public class xsWorkerMETAR {
 			for (String thisStation : wxStations) {
 
 				String tDewpointC = null; tVars++;
+				String tPressureIn = null; tVars++;
 				String tPressureMb = null; tVars++;
 				String tTempC = null; tVars++;
 				String tTimeString = null; tVars++;
@@ -58,6 +59,7 @@ public class xsWorkerMETAR {
 				String tWindDegrees = null; tVars++;
 				String tWindSpeed = null; tVars++;
 				String tVisibility = null; tVars++;
+				String tVertVisFt = null; tVars++;
 				String tPrecipIn = null; tVars++;
 				String tRawMETAR = null; tVars++;
 				String tFlightCat = null; tVars++;
@@ -67,12 +69,14 @@ public class xsWorkerMETAR {
 					XPath xpath = xPathFactory.newXPath();
 					tTempC = xpath.evaluate("//*[station_id='"+thisStation+"']/temp_c", xmlDoc);
 					tDewpointC = xpath.evaluate("//*[station_id='"+thisStation+"']/dewpoint_c", xmlDoc);
+					tPressureIn = xpath.evaluate("//*[station_id='"+thisStation+"']/altim_in_hg", xmlDoc);
 					tPressureMb = xpath.evaluate("//*[station_id='"+thisStation+"']/sea_level_pressure_mb", xmlDoc);
 					tTimeString = xpath.evaluate("//*[station_id='"+thisStation+"']/observation_time", xmlDoc);
 					tWeather = xpath.evaluate("//*[station_id='"+thisStation+"']/wx_string", xmlDoc);
 					tWindDegrees = xpath.evaluate("//*[station_id='"+thisStation+"']/wind_dir_degrees", xmlDoc);
 					tWindSpeed = xpath.evaluate("//*[station_id='"+thisStation+"']/wind_speed_kt", xmlDoc);
 					tVisibility = xpath.evaluate("//*[station_id='"+thisStation+"']/visibility_statute_mi", xmlDoc);
+					tVertVisFt = xpath.evaluate("//*[station_id='"+thisStation+"']/vert_vis_ft", xmlDoc);
 					tPrecipIn = xpath.evaluate("//*[station_id='"+thisStation+"']/precip_in", xmlDoc);
 					tRawMETAR = xpath.evaluate("//*[station_id='"+thisStation+"']/raw_text", xmlDoc);
 					tFlightCat = xpath.evaluate("//*[station_id='"+thisStation+"']/flight_category", xmlDoc);
@@ -87,8 +91,10 @@ public class xsWorkerMETAR {
 				if (StumpJunk.isSet(tTempC)) { jStationData.put("Temperature", tTempC); } else { thisNullCounter++; }
 				if (StumpJunk.isSet(tDewpointC)) { jStationData.put("Dewpoint", tDewpointC); } else { thisNullCounter++; }
 				if (StumpJunk.isSet(tPressureMb)) { jStationData.put("Pressure", tPressureMb); } else { thisNullCounter++; }
+				if (StumpJunk.isSet(tPressureIn)) { jStationData.put("PressureIn", tPressureIn); } else { thisNullCounter++; }
 				if (StumpJunk.isSet(tTimeString)) { jStationData.put("TimeString", tTimeString); } else { thisNullCounter++; }
 				if (StumpJunk.isSet(tVisibility)) { jStationData.put("Visibility", tVisibility); } else { thisNullCounter++; }
+				if (StumpJunk.isSet(tVertVisFt)) { jStationData.put("VerticalVisibilityFt", tVertVisFt); } else { thisNullCounter++; }
 				if (StumpJunk.isSet(tWeather)) { jStationData.put("Weather", tWeather); } else { thisNullCounter++; }
 				if (StumpJunk.isSet(tWindDegrees)) { jStationData.put("WindDegrees", tWindDegrees); } else { thisNullCounter++; }
 				if (StumpJunk.isSet(tWindSpeed)) { jStationData.put("WindSpeed", tWindSpeed); } else { thisNullCounter++; }
@@ -99,12 +105,14 @@ public class xsWorkerMETAR {
 				if (thisNullCounter != tVars) {
 					String thisJSONstring = jStationObj.toString().substring(1);
 					thisJSONstring = thisJSONstring.substring(0, thisJSONstring.length()-1)+",";
-					try { StumpJunk.varToFile(thisJSONstring, jsonOutFile, true); } catch (FileNotFoundException fnf) { fnf.printStackTrace(); }
-					System.out.println(" -> Completed: "+thisStation+" ("+stationType+")");
+					if(thisJSONstring.equals("\""+thisStation+"\":{},")) {
+						System.out.println("!!! WARN: NO DATA FOR Station "+thisStation+" (METAR Method 2)!");
+					} else {
+						try { StumpJunk.varToFile(thisJSONstring, jsonOutFile, true); } catch (FileNotFoundException fnf) { fnf.printStackTrace(); }
+						System.out.println(" -> Completed: "+thisStation+" ("+stationType+")");
+					}
 				} else {
-					System.out.println("!!! WARN: NO DATA FOR Station "+thisStation+" !");
-					String thisBadStation = thisStation+", ";
-					try { StumpJunk.varToFile(thisBadStation, badStationFile, true); } catch (FileNotFoundException fnf) { fnf.printStackTrace(); }
+					System.out.println("!!! WARN: NO DATA FOR Station "+thisStation+" (METAR Method 1)!");
 				}
 				
 			}
