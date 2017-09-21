@@ -135,6 +135,7 @@ public class StumpJunk {
 	}
 
 	public static void runProcessOutFile(String pString, File outFile, boolean appendFlag) throws FileNotFoundException {
+		System.out.println(" --> (Output following result to file: "+outFile.getPath()+")");
 		String tmpVar = null;
 		try { tmpVar = runProcessOutVar(pString); } catch (IOException ix) { ix.printStackTrace(); }
 		varToFile(tmpVar, outFile, appendFlag);
@@ -148,15 +149,6 @@ public class StumpJunk {
 		String val = "";
 		if (co.hasNext()) { val = co.next(); } else { val = ""; }
 		return val;
-		/* PrintStream console = System.out;
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		PrintStream thisStream = new PrintStream(baos);
-		System.setOut(thisStream);
-		try { runProcessSilently(pString); } catch (Exception e) { e.printStackTrace(); }
-		String thisOutputString = baos.toString();
-		System.out.flush();
-		System.setOut(console);
-		return thisOutputString; */
 	}
 
 	public static void sedFileDeleteFirstLine(String fileName) {
