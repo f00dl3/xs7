@@ -1,7 +1,6 @@
-/* XML Stations v7
-Core Process 
-Conceived 2016-09-04
-Updated 2017-09-15 */
+/* XML Stations v7 Core Process 
+Project conceived 2016-09-04
+Project updated 2017-09-21 */
 
 package jASUtils;
 
@@ -23,6 +22,7 @@ import jASUtils.xsWorkerBasic;
 import jASUtils.xsWorkerMETAR;
 import jASUtils.xsWorkerBouy;
 import jASUtils.xsWorkerHydro;
+import jASUtils.xsWorkerWunder;
 
 public class xs7 {
 
@@ -49,14 +49,14 @@ public class xs7 {
 		final File nwsObsXMLzipFile = new File(xsTmp+"/index.zip");
 		final File rapCtlFile = new File(xsTmp+"/grib2/RAP.ctl");
 		final File rapGrib2File = new File(xsTmp+"/grib2/RAP");
-		final File wwwOutObj = new File("/var/www/G2Out/xsOutJ");
+		final File wwwOutObj = new File("/var/www/G2Out/xsOut");
 		final File xsTmpObj = new File(xsTmp);
 		final String gVarsSQL = "SELECT gVar FROM WxObs.gradsOutType WHERE Active=1;";
 		final String gVarsHSQL = "SELECT gVar FROM WxObs.gradsOutType WHERE Active=1 AND HighRes=1;";
 		final String gVarsLSQL = "SELECT gVar FROM WxObs.gradsOutType WHERE Active=1 AND HighRes=0;";
-		final String resHigh = "8712x4400";
+		final String resHigh = "13068x6600";
 		final String resLow = "2904x1440";
-		final String wgrib2Path = "/home/astump/src/grib2/wgrib2";
+		final String appPath = "/usr/local/bin";
 		List<String> gVars = new ArrayList<String>();
 		List<String> gVarsH = new ArrayList<String>();
 		List<String> gVarsL = new ArrayList<String>();
@@ -120,29 +120,21 @@ public class xs7 {
 			thisGVarWPath.mkdirs();
 		}
 		
-		StumpJunk.runProcess("(wgrib2 "+xsTmp+"/grib2/HRRR -pdt | egrep -v \"^600:\" | wgrib2 -i "+xsTmp+"/grib2/HRRR -grib "+xsTmp+"/grib2/HRRR)");
+		StumpJunk.runProcess("(\""+appPath+"/wgrib2\" "+xsTmp+"/grib2/HRRR -pdt | egrep -v \"^600:\" | \""+appPath+"/wgrib2\" -i "+xsTmp+"/grib2/HRRR -grib "+xsTmp+"/grib2/HRRR)");
 
-		Thread c3a = new Thread(new Runnable() { public void run() {
-			String rapCtlData = null;
-			try { rapCtlData = StumpJunk.runProcessOutVar("\""+wgrib2Path+"/g2ctl\" "+xsTmp+"/grib2/RAP"); } catch (IOException ix) { ix.printStackTrace(); }
-			try { StumpJunk.varToFile(rapCtlData, rapCtlFile, false); } catch (FileNotFoundException fnf) { fnf.printStackTrace(); }
-		}});
-		Thread c3b = new Thread(new Runnable() { public void run() {
-			String hrrrCtlData = null;
-			try { hrrrCtlData = StumpJunk.runProcessOutVar("\""+wgrib2Path+"/g2ctl\" "+xsTmp+"/grib2/HRRR"); } catch (IOException ix) { ix.printStackTrace(); }
-			try { StumpJunk.varToFile(hrrrCtlData, hrrrCtlFile, false); } catch (FileNotFoundException fnf) { fnf.printStackTrace(); }
-		}});
+		Thread c3a = new Thread(new Runnable() { public void run() { StumpJunk.runProcess("(\""+appPath+"/g2ctl\" "+rapGrib2File.getPath()+" > "+rapCtlFile.getPath()+" &>> "+logFile.getPath()+");"); }});
+		Thread c3b = new Thread(new Runnable() { public void run() { StumpJunk.runProcess("(\""+appPath+"/g2ctl\" "+hrrrGrib2File.getPath()+" > "+hrrrCtlFile.getPath()+")"); }});
 		Thread cList3[] = { c3a, c3b };
 		for (Thread thread : cList3) { thread.start(); }
 		for (int i = 0; i < cList3.length; i++) { try { cList3[i].join(); } catch (InterruptedException nx) { nx.printStackTrace(); } }
 
-		Thread c4a = new Thread(new Runnable() { public void run() { StumpJunk.runProcess("gribmap -v -i "+hrrrCtlFile.getPath()); }});
-		Thread c4b = new Thread(new Runnable() { public void run() { StumpJunk.runProcess("gribmap -v -i "+xsTmp+"/grib2/RAP.ctl"); }});
+		Thread c4a = new Thread(new Runnable() { public void run() { StumpJunk.runProcess("\""+appPath+"/gribmap\" -v -i "+hrrrCtlFile.getPath()); }});
+		Thread c4b = new Thread(new Runnable() { public void run() { StumpJunk.runProcess("\""+appPath+"/gribmap\" -v -i "+rapCtlFile.getPath()); }});
 		Thread cList4[] = { c4a, c4b };
 		for (Thread thread : cList4) { thread.start(); }
 		for (int i = 0; i < cList4.length; i++) { try { cList4[i].join(); } catch (InterruptedException nx) { nx.printStackTrace(); } }
 
-		StumpJunk.runProcess("(echo \"run "+helpers.getPath()+"/xsGraphics.gs "+getDate+" "+getHour+" "+gradsOutObj.getPath()+"\" | grads -blc \"open "+xsTmp+"/grib2/HRRR.ctl\" 2>&1 >> "+logFile.getPath()+")");
+		StumpJunk.runProcess("(echo \"run "+helpers.getPath()+"/xsGraphics.gs "+getDate+" "+getHour+" "+gradsOutObj.getPath()+"\" | \""+appPath+"/grads\" -blc \"open "+xsTmp+"/grib2/HRRR.ctl\" 2>&1 >> "+logFile.getPath()+")");
 		for (String gVar : gVarsH) { StumpJunk.runProcess("convert \""+gradsOutObj.getPath()+"/"+gVar+"/"+getDate+"_"+getHour+"_"+gVar+".png\" -gravity Center -crop "+resHigh+"+0+0 "+gradsOutObj.getPath()+"/"+gVar+"/"+getDate+"_"+getHour+"_"+gVar+".png"); }
 		for (String gVar : gVarsL) { StumpJunk.runProcess("convert \""+gradsOutObj.getPath()+"/"+gVar+"/"+getDate+"_"+getHour+"_"+gVar+".png\" -gravity Center -crop "+resLow+"+0+0 "+gradsOutObj.getPath()+"/"+gVar+"/"+getDate+"_"+getHour+"_"+gVar+".png"); }
 		StumpJunk.runProcess("cp -Rv "+gradsOutObj.getPath()+"/* "+wwwOutObj.getPath());
@@ -153,7 +145,7 @@ public class xs7 {
 		final String[] xfWorker2Args = { xsTmp, "USE" }; 
 		final String[] xfWorker3Args = { xsTmp, "USW" };
 
-		final String[] xbWorkerArgs = { xsTmp, " " };
+		final String[] xbWorkerArgs = { xsTmp, "None" };
 
 		final String[] xmWorker1Args = { xsTmp, "US" }; 
 		final String[] xmWorker2Args = { xsTmp, "CA" }; 
@@ -167,8 +159,10 @@ public class xs7 {
 		final String[] xmWorker10Args = { xsTmp, "EUW" }; 
 		final String[] xmWorker11Args = { xsTmp, "AFR" };
 
-		final String[] xwbWorkerArgs = { xsTmp, " " };
-		final String[] xwhWorkerArgs = { xsTmp, " " };
+		final String[] xwbWorkerArgs = { xsTmp, "None" };
+		final String[] xwhWorkerArgs = { xsTmp, "None" };
+		
+		final String[] xwuWorkerArgs = { xsTmp, "None" };
 
 		Thread xs01 = new Thread(new Runnable() { public void run() { xsWorkerFull.main(xfWorker1Args); }});
 		Thread xs02 = new Thread(new Runnable() { public void run() { xsWorkerFull.main(xfWorker2Args); }});
@@ -187,12 +181,13 @@ public class xs7 {
 		Thread xs15 = new Thread(new Runnable() { public void run() { xsWorkerMETAR.main(xmWorker11Args); }});
 		Thread xs16 = new Thread(new Runnable() { public void run() { xsWorkerBouy.main(xwbWorkerArgs); }});
 		Thread xs17 = new Thread(new Runnable() { public void run() { xsWorkerHydro.main(xwhWorkerArgs); }});
-		Thread xsPool[] = { xs01, xs02, xs03, xs04, xs05, xs06, xs07, xs08, xs09, xs10, xs11, xs12, xs13, xs14, xs15, xs16, xs17 }; 
+		Thread xs18 = new Thread(new Runnable() { public void run() { xsWorkerWunder.main(xwuWorkerArgs); }});
+		Thread xsPool[] = { xs01, xs02, xs03, xs04, xs05, xs06, xs07, xs08, xs09, xs10, xs11, xs12, xs13, xs14, xs15, xs16, xs17, xs18 }; 
 		for (Thread thread : xsPool) { thread.start(); }
 		for (int i = 0; i < xsPool.length; i++) { try { xsPool[i].join(); } catch (InterruptedException nx) { nx.printStackTrace(); } }
 
 		String jsonBigString = null;
-		try { jsonBigString = StumpJunk.runProcessOutVar("cat "+xsTmp+"/*.json"); } catch (IOException ix) { ix.printStackTrace(); }
+		try { jsonBigString = StumpJunk.runProcessOutVar("cat "+xsTmp+"/output_*.json"); } catch (IOException ix) { ix.printStackTrace(); }
 		jsonBigString = ("{"+jsonBigString+"}").replace("\n","").replace(",}", "}");
 
 		try { StumpJunk.varToFile(jsonBigString, jsonDebugDumpFile, false); } catch (FileNotFoundException fnf) { fnf.printStackTrace(); }
@@ -222,7 +217,7 @@ public class xs7 {
 		catch (SQLException se) { se.printStackTrace(); }
 		catch (Exception e) { e.printStackTrace(); }
 
-		System.out.println("Updates completed! Runtime: "+totalRunTime);
+		System.out.println("Updates completed! Runtime: "+totalRunTime); 
 
 	}
 
