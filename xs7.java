@@ -162,7 +162,7 @@ public class xs7 {
 		final String[] xmWorker9Args = { xsTmp, "EUE" }; 
 		final String[] xmWorker10Args = { xsTmp, "EUW" }; 
 		final String[] xmWorker11Args = { xsTmp, "AFR" };
-		final String[] xmWorker12Args = { xsTmp, "AUTO" };
+		final String[] xmWorker12Args = { xsTmp, "AUT" };
 
 		final String[] xwbWorkerArgs = { xsTmp, "None" };
 		final String[] xwhWorkerArgs = { xsTmp, "None" };
