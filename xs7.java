@@ -162,7 +162,9 @@ public class xs7 {
 		final String[] xmWorker9Args = { xsTmp, "EUE" }; 
 		final String[] xmWorker10Args = { xsTmp, "EUW" }; 
 		final String[] xmWorker11Args = { xsTmp, "AFR" };
-		final String[] xmWorker12Args = { xsTmp, "AUT" };
+		final String[] xmWorker12Args = { xsTmp, "XA1" };
+		final String[] xmWorker13Args = { xsTmp, "XA2" };
+		final String[] xmWorker14Args = { xsTmp, "AUT" };
 
 		final String[] xwbWorkerArgs = { xsTmp, "None" };
 		final String[] xwhWorkerArgs = { xsTmp, "None" };
@@ -185,10 +187,12 @@ public class xs7 {
 		Thread xs14 = new Thread(new Runnable() { public void run() { xsWorkerMETAR.main(xmWorker10Args); }});
 		Thread xs15 = new Thread(new Runnable() { public void run() { xsWorkerMETAR.main(xmWorker11Args); }});
 		Thread xs16 = new Thread(new Runnable() { public void run() { xsWorkerMETAR.main(xmWorker12Args); }});
-		Thread xs17 = new Thread(new Runnable() { public void run() { xsWorkerBouy.main(xwbWorkerArgs); }});
-		Thread xs18 = new Thread(new Runnable() { public void run() { xsWorkerHydro.main(xwhWorkerArgs); }});
-		Thread xs19 = new Thread(new Runnable() { public void run() { xsWorkerWunder.main(xwuWorkerArgs); }});
-		Thread xsPool[] = { xs01, xs02, xs03, xs04, xs05, xs06, xs07, xs08, xs09, xs10, xs11, xs12, xs13, xs14, xs15, xs16, xs17, xs18 }; 
+		Thread xs17 = new Thread(new Runnable() { public void run() { xsWorkerMETAR.main(xmWorker13Args); }});
+		Thread xs18 = new Thread(new Runnable() { public void run() { xsWorkerMETAR.main(xmWorker14Args); }});
+		Thread xs19 = new Thread(new Runnable() { public void run() { xsWorkerBouy.main(xwbWorkerArgs); }});
+		Thread xs20 = new Thread(new Runnable() { public void run() { xsWorkerHydro.main(xwhWorkerArgs); }});
+		Thread xs21 = new Thread(new Runnable() { public void run() { xsWorkerWunder.main(xwuWorkerArgs); }});
+		Thread xsPool[] = { xs01, xs02, xs03, xs04, xs05, xs06, xs07, xs08, xs09, xs10, xs11, xs12, xs13, xs14, xs15, xs16, xs17, xs18, xs19, xs20, xs21 }; 
 		for (Thread thread : xsPool) { thread.start(); }
 		for (int i = 0; i < xsPool.length; i++) { try { xsPool[i].join(); } catch (InterruptedException nx) { nx.printStackTrace(); } }
 
