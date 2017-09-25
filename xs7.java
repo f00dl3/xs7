@@ -1,6 +1,6 @@
 /* XML Stations v7 Core Process 
 Project conceived 2016-09-04
-Project updated 2017-09-21 */
+Project updated 2017-09-24 */
 
 package jASUtils;
 
@@ -20,7 +20,7 @@ import jASUtils.xsImageOp;
 import jASUtils.xsMETARAutoAdd;
 import jASUtils.xsWorkerFull;
 import jASUtils.xsWorkerBasic;
-import jASUtils.xsWorkerMETAR;
+import jASUtils.xsWorkerMETARStream;
 import jASUtils.xsWorkerBouy;
 import jASUtils.xsWorkerHydro;
 import jASUtils.xsWorkerWunder;
@@ -76,22 +76,11 @@ public class xs7 {
 		gradsOutObj.mkdirs();
 		wwwOutObj.mkdirs();
 
-		Thread c1a = new Thread(new Runnable() { public void run() { StumpJunk.jsoupOutBinary(xmlObsURL, nwsObsXMLzipFile, 15.0); }});
-		Thread c1b = new Thread(new Runnable() { public void run() { StumpJunk.runProcess("wget -O \""+rapGrib2File.getPath()+"\" \""+rapGrib2URL+"\""); }});
-		Thread c1c = new Thread(new Runnable() { public void run() { StumpJunk.jsoupOutBinary(hrrrGrib2URL, hrrrGrib2File, 15.0); }});
-		Thread c1d = new Thread(new Runnable() { public void run() { StumpJunk.jsoupOutBinary(metarsURL, metarsZipFile, 15.0); }});
-		Thread cList1[] = { c1a, c1b, c1c, c1d };
+		Thread c1a = new Thread(new Runnable() { public void run() { StumpJunk.runProcess("wget -O \""+rapGrib2File.getPath()+"\" \""+rapGrib2URL+"\""); }});
+		Thread c1b = new Thread(new Runnable() { public void run() { StumpJunk.jsoupOutBinary(hrrrGrib2URL, hrrrGrib2File, 15.0); }});
+		Thread cList1[] = { c1a, c1b };
 		for (Thread thread : cList1) { thread.start(); }
 		for (int i = 0; i < cList1.length; i++) { try { cList1[i].join(); } catch (InterruptedException nx) { nx.printStackTrace(); } }
-
-		Thread c2a = new Thread(new Runnable() { public void run() { StumpJunk.unzipFile(nwsObsXMLzipFile.getPath(), xsTmp); }});
-		Thread c2b = new Thread(new Runnable() { public void run() { StumpJunk.runProcess("gunzip \""+metarsZipFile.getPath()+"\""); }});
-		Thread cList2[] = { c2a, c2b };
-		for (Thread thread : cList2) { thread.start(); }
-		for (int i = 0; i < cList2.length; i++) { try { cList2[i].join(); } catch (InterruptedException nx) { nx.printStackTrace(); } }
- 
-		final String[] addMETARStationArgs = { xsTmp };
-		xsMETARAutoAdd.main(addMETARStationArgs);
 
 		try (
 			Connection conn1 = MyDBConnector.getMyConnection(); Statement stmt1 = conn1.createStatement();
@@ -126,17 +115,17 @@ public class xs7 {
 		
 		StumpJunk.runProcess("(\""+appPath+"/wgrib2\" "+xsTmp+"/grib2/HRRR -pdt | egrep -v \"^600:\" | \""+appPath+"/wgrib2\" -i "+xsTmp+"/grib2/HRRR -grib "+xsTmp+"/grib2/HRRR)");
 
-		Thread c3a = new Thread(new Runnable() { public void run() { StumpJunk.runProcess("(\""+appPath+"/g2ctl\" "+rapGrib2File.getPath()+" > "+rapCtlFile.getPath()+" &>> "+logFile.getPath()+");"); }});
-		Thread c3b = new Thread(new Runnable() { public void run() { StumpJunk.runProcess("(\""+appPath+"/g2ctl\" "+hrrrGrib2File.getPath()+" > "+hrrrCtlFile.getPath()+")"); }});
+		Thread c2a = new Thread(new Runnable() { public void run() { StumpJunk.runProcess("(\""+appPath+"/g2ctl\" "+rapGrib2File.getPath()+" > "+rapCtlFile.getPath()+" &>> "+logFile.getPath()+");"); }});
+		Thread c2b = new Thread(new Runnable() { public void run() { StumpJunk.runProcess("(\""+appPath+"/g2ctl\" "+hrrrGrib2File.getPath()+" > "+hrrrCtlFile.getPath()+")"); }});
+		Thread cList2[] = { c2a, c2b };
+		for (Thread thread : cList2) { thread.start(); }
+		for (int i = 0; i < cList2.length; i++) { try { cList2[i].join(); } catch (InterruptedException nx) { nx.printStackTrace(); } }
+
+		Thread c3a = new Thread(new Runnable() { public void run() { StumpJunk.runProcess("\""+appPath+"/gribmap\" -v -i "+hrrrCtlFile.getPath()); }});
+		Thread c3b = new Thread(new Runnable() { public void run() { StumpJunk.runProcess("\""+appPath+"/gribmap\" -v -i "+rapCtlFile.getPath()); }});
 		Thread cList3[] = { c3a, c3b };
 		for (Thread thread : cList3) { thread.start(); }
 		for (int i = 0; i < cList3.length; i++) { try { cList3[i].join(); } catch (InterruptedException nx) { nx.printStackTrace(); } }
-
-		Thread c4a = new Thread(new Runnable() { public void run() { StumpJunk.runProcess("\""+appPath+"/gribmap\" -v -i "+hrrrCtlFile.getPath()); }});
-		Thread c4b = new Thread(new Runnable() { public void run() { StumpJunk.runProcess("\""+appPath+"/gribmap\" -v -i "+rapCtlFile.getPath()); }});
-		Thread cList4[] = { c4a, c4b };
-		for (Thread thread : cList4) { thread.start(); }
-		for (int i = 0; i < cList4.length; i++) { try { cList4[i].join(); } catch (InterruptedException nx) { nx.printStackTrace(); } }
 
 		StumpJunk.runProcess("(echo \"run "+helpers.getPath()+"/xsGraphics.gs "+getDate+" "+getHour+" "+gradsOutObj.getPath()+"\" | \""+appPath+"/grads\" -blc \"open "+xsTmp+"/grib2/HRRR.ctl\" &>> "+logFile.getPath()+")");
 		for (String gVar : gVarsH) { StumpJunk.runProcess("convert \""+gradsOutObj.getPath()+"/"+gVar+"/"+getDate+"_"+getHour+"_"+gVar+".png\" -gravity Center -crop "+resHigh+"+0+0 "+gradsOutObj.getPath()+"/"+gVar+"/"+getDate+"_"+getHour+"_"+gVar+".png"); }
@@ -145,54 +134,39 @@ public class xs7 {
 
 		final String[] xsImageOpArgs = { xsTmp }; xsImageOp.main(xsImageOpArgs);
 
+		Thread d1a = new Thread(new Runnable() { public void run() { StumpJunk.jsoupOutBinary(xmlObsURL, nwsObsXMLzipFile, 15.0); }});
+		Thread d1b = new Thread(new Runnable() { public void run() { StumpJunk.jsoupOutBinary(metarsURL, metarsZipFile, 15.0); }});
+		Thread dList1[] = { d1a, d1b };
+		for (Thread thread : dList1) { thread.start(); }
+		for (int i = 0; i < dList1.length; i++) { try { dList1[i].join(); } catch (InterruptedException nx) { nx.printStackTrace(); } }
+
+		Thread d2a = new Thread(new Runnable() { public void run() { StumpJunk.unzipFile(nwsObsXMLzipFile.getPath(), xsTmp); }});
+		Thread d2b = new Thread(new Runnable() { public void run() { StumpJunk.runProcess("gunzip \""+metarsZipFile.getPath()+"\""); }});
+		Thread dList2[] = { d2a, d2b };
+		for (Thread thread : dList2) { thread.start(); }
+		for (int i = 0; i < dList2.length; i++) { try { dList2[i].join(); } catch (InterruptedException nx) { nx.printStackTrace(); } }
+ 
+		final String[] addMETARStationArgs = { xsTmp };
+		xsMETARAutoAdd.main(addMETARStationArgs);
+
 		final String[] xfWorker1Args = { xsTmp, "USC" }; 
 		final String[] xfWorker2Args = { xsTmp, "USE" }; 
 		final String[] xfWorker3Args = { xsTmp, "USW" };
-
 		final String[] xbWorkerArgs = { xsTmp, "None" };
-
-		final String[] xmWorker1Args = { xsTmp, "US" }; 
-		final String[] xmWorker2Args = { xsTmp, "CA" }; 
-		final String[] xmWorker3Args = { xsTmp, "ME" }; 
-		final String[] xmWorker4Args = { xsTmp, "AUS" };
-		final String[] xmWorker5Args = { xsTmp, "SAM" }; 
-		final String[] xmWorker6Args = { xsTmp, "INC" }; 
-		final String[] xmWorker7Args = { xsTmp, "RUC" }; 
-		final String[] xmWorker8Args = { xsTmp, "EUC" };
-		final String[] xmWorker9Args = { xsTmp, "EUE" }; 
-		final String[] xmWorker10Args = { xsTmp, "EUW" }; 
-		final String[] xmWorker11Args = { xsTmp, "AFR" };
-		final String[] xmWorker12Args = { xsTmp, "XA1" };
-		final String[] xmWorker13Args = { xsTmp, "XA2" };
-		final String[] xmWorker14Args = { xsTmp, "AUT" };
-
+		final String[] xmWorkerSArgs = { xsTmp, "None" }; 
 		final String[] xwbWorkerArgs = { xsTmp, "None" };
 		final String[] xwhWorkerArgs = { xsTmp, "None" };
-		
 		final String[] xwuWorkerArgs = { xsTmp, "None" };
 
-		Thread xs01 = new Thread(new Runnable() { public void run() { xsWorkerFull.main(xfWorker1Args); }});
-		Thread xs02 = new Thread(new Runnable() { public void run() { xsWorkerFull.main(xfWorker2Args); }});
-		Thread xs03 = new Thread(new Runnable() { public void run() { xsWorkerFull.main(xfWorker3Args); }});
-		Thread xs04 = new Thread(new Runnable() { public void run() { xsWorkerBasic.main(xbWorkerArgs); }});
-		Thread xs05 = new Thread(new Runnable() { public void run() { xsWorkerMETAR.main(xmWorker1Args); }});
-		Thread xs06 = new Thread(new Runnable() { public void run() { xsWorkerMETAR.main(xmWorker2Args); }});
-		Thread xs07 = new Thread(new Runnable() { public void run() { xsWorkerMETAR.main(xmWorker3Args); }});
-		Thread xs08 = new Thread(new Runnable() { public void run() { xsWorkerMETAR.main(xmWorker4Args); }});
-		Thread xs09 = new Thread(new Runnable() { public void run() { xsWorkerMETAR.main(xmWorker5Args); }});
-		Thread xs10 = new Thread(new Runnable() { public void run() { xsWorkerMETAR.main(xmWorker6Args); }});
-		Thread xs11 = new Thread(new Runnable() { public void run() { xsWorkerMETAR.main(xmWorker7Args); }});
-		Thread xs12 = new Thread(new Runnable() { public void run() { xsWorkerMETAR.main(xmWorker8Args); }});
-		Thread xs13 = new Thread(new Runnable() { public void run() { xsWorkerMETAR.main(xmWorker9Args); }});
-		Thread xs14 = new Thread(new Runnable() { public void run() { xsWorkerMETAR.main(xmWorker10Args); }});
-		Thread xs15 = new Thread(new Runnable() { public void run() { xsWorkerMETAR.main(xmWorker11Args); }});
-		Thread xs16 = new Thread(new Runnable() { public void run() { xsWorkerMETAR.main(xmWorker12Args); }});
-		Thread xs17 = new Thread(new Runnable() { public void run() { xsWorkerMETAR.main(xmWorker13Args); }});
-		Thread xs18 = new Thread(new Runnable() { public void run() { xsWorkerMETAR.main(xmWorker14Args); }});
-		Thread xs19 = new Thread(new Runnable() { public void run() { xsWorkerBouy.main(xwbWorkerArgs); }});
-		Thread xs20 = new Thread(new Runnable() { public void run() { xsWorkerHydro.main(xwhWorkerArgs); }});
-		Thread xs21 = new Thread(new Runnable() { public void run() { xsWorkerWunder.main(xwuWorkerArgs); }});
-		Thread xsPool[] = { xs01, xs02, xs03, xs04, xs05, xs06, xs07, xs08, xs09, xs10, xs11, xs12, xs13, xs14, xs15, xs16, xs17, xs18, xs19, xs20, xs21 }; 
+		Thread xs1 = new Thread(new Runnable() { public void run() { xsWorkerFull.main(xfWorker1Args); }});
+		Thread xs2 = new Thread(new Runnable() { public void run() { xsWorkerFull.main(xfWorker2Args); }});
+		Thread xs3 = new Thread(new Runnable() { public void run() { xsWorkerFull.main(xfWorker3Args); }});
+		Thread xs4 = new Thread(new Runnable() { public void run() { xsWorkerBasic.main(xbWorkerArgs); }});
+		Thread xs5 = new Thread(new Runnable() { public void run() { xsWorkerMETARStream.main(xmWorkerSArgs); }});
+		Thread xs6 = new Thread(new Runnable() { public void run() { xsWorkerBouy.main(xwbWorkerArgs); }});
+		Thread xs7 = new Thread(new Runnable() { public void run() { xsWorkerHydro.main(xwhWorkerArgs); }});
+		Thread xs8 = new Thread(new Runnable() { public void run() { xsWorkerWunder.main(xwuWorkerArgs); }});
+		Thread xsPool[] = { xs1, xs2, xs3, xs4, xs5, xs6, xs7, xs8 }; 
 		for (Thread thread : xsPool) { thread.start(); }
 		for (int i = 0; i < xsPool.length; i++) { try { xsPool[i].join(); } catch (InterruptedException nx) { nx.printStackTrace(); } }
 
