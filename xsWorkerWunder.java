@@ -21,8 +21,11 @@ public class xsWorkerWunder {
 		final String xsTmp = args[0];
 		final String stationType = "Wunder";
 		final String region = args[1];
-		final File jsonOutFile = new File(xsTmp+"/output_"+stationType+"_"+region+".json");
+		final File jsonOutFile = new File(xsTmp+"/rapid_"+stationType+"_"+region+".json");
 		final File wunderFile = new File(xsTmp+"/wuData.json");
+		final File wunderFile2 = new File(xsTmp+"/wuData2.json");
+		final File wunderFile3 = new File(xsTmp+"/wuData3.json");
+		final File wunderFile4 = new File(xsTmp+"/wuData4.json");
 		String addStationTestSQL = "INSERT IGNORE INTO WxObs.Stations (Station, Point, City, State, Active, Priority, Region, DataSource, Frequency) VALUES";
 
 		jsonOutFile.delete();
@@ -31,16 +34,24 @@ public class xsWorkerWunder {
 		int tVars = 0;
 		
 		final String wunderURL = "http://stationdata.wunderground.com/cgi-bin/stationdata?format=json&maxstations=1000&minlat=36&minlon=-97&maxlat=41&maxlon=-91";
+		final String wunderURL2 = "http://stationdata.wunderground.com/cgi-bin/stationdata?format=json&maxstations=1000&minlat=36&minlon=-103&maxlat=41&maxlon=-97";
+		final String wunderURL3 = "http://stationdata.wunderground.com/cgi-bin/stationdata?format=json&maxstations=1000&minlat=41&minlon=-103&maxlat=47&maxlon=-97";
+		final String wunderURL4 = "http://stationdata.wunderground.com/cgi-bin/stationdata?format=json&maxstations=1000&minlat=41&minlon=-97&maxlat=47&maxlon=-91";
 
 		StumpJunk.jsoupOutBinary(wunderURL, wunderFile, 15.0);
+		StumpJunk.jsoupOutBinary(wunderURL2, wunderFile2, 15.0);
+		StumpJunk.jsoupOutBinary(wunderURL3, wunderFile3, 15.0);
+		StumpJunk.jsoupOutBinary(wunderURL4, wunderFile4, 15.0);
 		
-		StumpJunk.sedFileReplace(wunderFile.toString(), "\\n", "");
-		StumpJunk.sedFileReplace(wunderFile.toString(), " null\\,", "\\\"null\\\",");
+		StumpJunk.sedFileReplace(wunderFile.toString(), "\\n", ""); StumpJunk.sedFileReplace(wunderFile.toString(), " null\\,", "\\\"null\\\",");
+		StumpJunk.sedFileReplace(wunderFile2.toString(), "\\n", ""); StumpJunk.sedFileReplace(wunderFile2.toString(), " null\\,", "\\\"null\\\",");
+		StumpJunk.sedFileReplace(wunderFile3.toString(), "\\n", ""); StumpJunk.sedFileReplace(wunderFile3.toString(), " null\\,", "\\\"null\\\",");
+		StumpJunk.sedFileReplace(wunderFile4.toString(), "\\n", ""); StumpJunk.sedFileReplace(wunderFile4.toString(), " null\\,", "\\\"null\\\",");
 			
-		String wuLoaded = "";
-		Scanner wuScanner = null;
-		try { wuScanner = new Scanner(wunderFile); while(wuScanner.hasNext()) { wuLoaded = wuLoaded+wuScanner.nextLine(); } }
-		catch (FileNotFoundException fnf) { fnf.printStackTrace(); }
+		String wuLoaded = ""; Scanner wuScanner = null; try { wuScanner = new Scanner(wunderFile); while(wuScanner.hasNext()) { wuLoaded = wuLoaded+wuScanner.nextLine(); } } catch (FileNotFoundException fnf) { fnf.printStackTrace(); }
+		String wuLoaded2 = ""; Scanner wuScanner2 = null; try { wuScanner2 = new Scanner(wunderFile2); while(wuScanner2.hasNext()) { wuLoaded2 = wuLoaded2+wuScanner2.nextLine(); } } catch (FileNotFoundException fnf) { fnf.printStackTrace(); }
+		String wuLoaded3 = ""; Scanner wuScanner3 = null; try { wuScanner3 = new Scanner(wunderFile3); while(wuScanner3.hasNext()) { wuLoaded3 = wuLoaded3+wuScanner3.nextLine(); } } catch (FileNotFoundException fnf) { fnf.printStackTrace(); }
+		String wuLoaded4 = ""; Scanner wuScanner4 = null; try { wuScanner4 = new Scanner(wunderFile4); while(wuScanner4.hasNext()) { wuLoaded4 = wuLoaded4+wuScanner4.nextLine(); } } catch (FileNotFoundException fnf) { fnf.printStackTrace(); }
 
 		List<String> wxStations = new ArrayList<String>();
 		final String getStationListSQL = "SELECT Station FROM WxObs.Stations WHERE Active=1 AND DataSource='WU' ORDER BY Station DESC;";
@@ -51,9 +62,17 @@ public class xsWorkerWunder {
 		) { while (resultSetStations.next()) { wxStations.add(resultSetStations.getString("Station")); } }
 		catch (Exception e) { e.printStackTrace(); }
 
-		JSONObject wuObj = new JSONObject(wuLoaded);
-		JSONObject wuObjTmp = wuObj.getJSONObject("conds");
-		JSONObject wuObjConds = new JSONObject(wuObjTmp.toString().trim());
+		JSONObject wuObj = new JSONObject(wuLoaded); JSONObject wuObjTmp = wuObj.getJSONObject("conds");
+		JSONObject wuObj2 = new JSONObject(wuLoaded2); JSONObject wuObjTmp2 = wuObj2.getJSONObject("conds");
+		JSONObject wuObj3 = new JSONObject(wuLoaded3); JSONObject wuObjTmp3 = wuObj3.getJSONObject("conds");
+		JSONObject wuObj4 = new JSONObject(wuLoaded4); JSONObject wuObjTmp4 = wuObj4.getJSONObject("conds");
+
+		JSONObject wuObjConcat = new JSONObject(wuObjTmp, JSONObject.getNames(wuObjTmp));
+		for (String key : JSONObject.getNames(wuObjTmp2)) { wuObjConcat.put(key, wuObjTmp2.get(key)); }
+		for (String key : JSONObject.getNames(wuObjTmp3)) { wuObjConcat.put(key, wuObjTmp3.get(key)); }
+		for (String key : JSONObject.getNames(wuObjTmp4)) { wuObjConcat.put(key, wuObjTmp4.get(key)); }
+
+		JSONObject wuObjConds = new JSONObject(wuObjConcat.toString().trim());
 		Iterator<?> keys = wuObjConds.keys();
 
 		JSONObject jStationData = new JSONObject();
@@ -61,6 +80,7 @@ public class xsWorkerWunder {
 		while(keys.hasNext()) {
 				
 			String key = (String)keys.next();
+			System.out.println(key);
 
 			JSONObject tJOStationData = wuObjConds.getJSONObject(key);
 
@@ -119,7 +139,7 @@ public class xsWorkerWunder {
 					String thisJSONstring = "\""+thisStation+"\":"+jStationData.toString()+",";
 					thisJSONstring = thisJSONstring.substring(0, thisJSONstring.length()-1)+",";
 					try { StumpJunk.varToFile(thisJSONstring, jsonOutFile, true); } catch (FileNotFoundException fnf) { fnf.printStackTrace(); }
-					System.out.println(" -> Completed: "+thisStation+" ("+stationType+")");
+					System.out.println(" -> Completed: "+thisStation+" ("+stationType+" - "+region+")");
 				} else {
 					System.out.println("!!! WARN: NO DATA FOR Station "+thisStation+" !");
 				}
